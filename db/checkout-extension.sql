@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS checkout_sessions (
  current_order_id text,
  current_status text,
  attempt integer NOT NULL DEFAULT 0,
- last_body jsonb,
+ last_body text,
  last_idempotency_key text,
  last_reference text,
  last_error_code text,
