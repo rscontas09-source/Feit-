@@ -48,12 +48,15 @@ export async function POST(req:NextRequest){
   if(phone)payload.phone=phone;
   if(typeof item.description==="string")payload.description=item.description.slice(0,140);
   let effective=payload,key=idempotency;
-  if(["network_unknown","rate_limited","service_unknown"].includes(s.last_error_code)&&s.last_body&&s.last_idempotency_key){
+  if(["network_unknown","rate_limited","service_unknown","mbway_pending_for_phone","mbway_temporarily_blocked"].includes(s.last_error_code)&&s.last_body&&s.last_idempotency_key){
    if(s.last_body!==JSON.stringify(payload)){
-    await client.query("ROLLBACK");
-    return NextResponse.json({error:"Há uma tentativa anterior sem resultado confirmado. Consulte o status antes de alterar o pedido."},{status:409});
-   }
-   effective=JSON.parse(s.last_body);key=s.last_idempotency_key;
+    if(["mbway_pending_for_phone","mbway_temporarily_blocked"].includes(s.last_error_code)) {
+      await client.query("UPDATE checkout_sessions SET attempt=$1,last_body=$2,last_idempotency_key=$3,last_reference=$4,last_error_code='network_unknown',updated_at=now() WHERE id=$5",[revision,JSON.stringify(payload),idempotency,reference,s.id]);
+    } else {
+      await client.query("ROLLBACK");
+      return NextResponse.json({error:"Há uma tentativa anterior sem resultado confirmado. Consulte o status antes de alterar o pedido."},{status:409});
+    }
+   } else {effective=JSON.parse(s.last_body);key=s.last_idempotency_key;}
   }else{
    await client.query("UPDATE checkout_sessions SET attempt=$1,last_body=$2,last_idempotency_key=$3,last_reference=$4,last_error_code='network_unknown',updated_at=now() WHERE id=$5",[revision,JSON.stringify(payload),idempotency,reference,s.id]);
   }
