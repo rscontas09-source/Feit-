@@ -49,17 +49,17 @@ export async function POST(req:NextRequest){
   if(typeof item.description==="string")payload.description=item.description.slice(0,140);
   let effective=payload,key=idempotency;
   if(["network_unknown","rate_limited","service_unknown"].includes(s.last_error_code)&&s.last_body&&s.last_idempotency_key){
-   if(JSON.stringify(s.last_body)!==JSON.stringify(payload)){
+   if(s.last_body!==JSON.stringify(payload)){
     await client.query("ROLLBACK");
     return NextResponse.json({error:"Há uma tentativa anterior sem resultado confirmado. Consulte o status antes de alterar o pedido."},{status:409});
    }
-   effective=s.last_body;key=s.last_idempotency_key;
+   effective=JSON.parse(s.last_body);key=s.last_idempotency_key;
   }else{
    await client.query("UPDATE checkout_sessions SET attempt=$1,last_body=$2,last_idempotency_key=$3,last_reference=$4,last_error_code='network_unknown',updated_at=now() WHERE id=$5",[revision,JSON.stringify(payload),idempotency,reference,s.id]);
   }
   // Grave antes da rede: se houver timeout, o replay usa bytes e chave idênticos.
   await client.query("COMMIT");
-  // Uma chamada por sessão sob bloqueio impede duplo clique gerar cobranças duplicadas.
+  // A mesma chave com o mesmo corpo evita duplicidade mesmo em pedidos concorrentes.
   const response=await createBroskiOrder(effective,key);
   if(response.ok){
    const o=response.body;
