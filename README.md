@@ -32,3 +32,16 @@ A integração Broski deve ser realizada exclusivamente no backend, após valida
 6. A interface atual é demonstrativa e não consome as APIs de relatório. Não confunda números de exemplo com vendas reais.
 7. As páginas existentes não foram alteradas. O código de rastreio será instalado posteriormente com domínio definido e políticas LGPD/RGPD.
 8. Hospedagem, variáveis de ambiente e testes end-to-end ainda não foram executados.
+
+## Checkout Broski (em desenvolvimento, NÃO ativar em produção)
+- `/checkout`: tela de exemplo do checkout no **mesmo domínio do backend**. MB WAY aguarda status local, Multibanco mostra voucher.
+- `POST /api/checkout/session`: cria sessão segura e calcula valor do SKU no servidor.
+- `POST /api/checkout/order`: valida dados e cria pedido na Broski, chave secreta exclusivamente no backend.
+- `GET /api/checkout/status`: consulta status persistido no nosso PostgreSQL, sem consultar Broski.
+- `POST /api/webhooks/broski`: autentica assinatura sobre bytes crus, deduplica e concilia eventos.
+- Scripts do checkout de vendas em `fabricaportugal.vercel.app` **ainda não foram modificados**. Será necessário o repositório do checkout e disponibilizar endpoints sob o mesmo site ou projetar autenticação cross-origin segura.
+- Antes de configurar `PORTUGAL_CATALOG_JSON`, confirme todos os SKUs e preços reais; nunca use preços enviados pelo browser.
+- A API da Broski utiliza valores inteiros em cêntimos e Content-Type UTF-8. Proíbe chamadas diretas no browser.
+- Não foram configuradas credenciais, banco real, envio de emails, nem execução de testes end-to-end.
+- A segurança de concorrência/recuperação de timeout e conciliação de estornos parciais exigem testes antes de ativar cobranças reais.
+- Não cadastre o webhook no painel Broski até configurar e testar integralmente o servidor.
