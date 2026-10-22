@@ -1,5 +1,5 @@
-import DemoModule from "./demo-module";
 "use client";
+import DemoModule from "./demo-module";
 import {useState} from "react";
 import {LayoutDashboard, ShoppingBag, CreditCard, Package, Mail, ChartNoAxesCombined, Store, Settings, Truck, Search, Bell, TrendingUp, Users, ArrowUpRight, ShieldCheck} from "lucide-react";
 
