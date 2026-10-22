@@ -32,8 +32,10 @@ export async function POST(req:NextRequest){
   if(!item||!Number.isSafeInteger(item.price_cents)||item.price_cents<1){await client.query("ROLLBACK");return NextResponse.json({error:"Produto indisponível."},{status:503});}
   const amount=item.price_cents*s.quantity;
   if(!Number.isSafeInteger(amount)|| (method==="mbway"&&(amount<50||amount>500000)) ||(method==="multibanco"&&(amount<1||amount>100000000))){await client.query("ROLLBACK");return NextResponse.json({error:"Valor fora do intervalo permitido para este método."},{status:400});}
-  // Nunca crie outra tentativa enquanto houver pagamento ativo ou pago.
-  if(s.current_status==="paid"||s.current_status==="pending"||s.current_status==="awaiting_payment"){
+  // Não reapresente voucher expirado; a nova tentativa terá referência nova.
+  const voucherExpired=s.current_status==="awaiting_payment"&&s.voucher&&Date.parse(s.voucher.expires_at)<=Date.now();
+  if(voucherExpired)await client.query("UPDATE checkout_sessions SET current_status='expired' WHERE id=$1",[s.id]);
+  if(s.current_status==="paid"||s.current_status==="pending"||(s.current_status==="awaiting_payment"&&!voucherExpired)){
    await client.query("COMMIT");
    const voucher=s.current_status==="awaiting_payment"&&s.voucher&&Date.parse(s.voucher.expires_at)>Date.now()?s.voucher:undefined;
    return NextResponse.json({id:s.current_order_id,status:s.current_status,multibanco:voucher});
